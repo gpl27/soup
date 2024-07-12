@@ -1,4 +1,6 @@
 import time
+import subprocess
+from typing import Callable
 
 class Experiment:
     """
@@ -6,7 +8,7 @@ class Experiment:
         * By default save in python dict as a pickle
         and then allow to export to other formats
     """
-    def __init__(self, path: str, args: str =None, name:str =None):
+    def __init__(self, cmd: str, name:str =None):
         """
         name    : Experiment name
         path    : Path to executable
@@ -15,14 +17,24 @@ class Experiment:
         _props  : Custom properties to add to the report
         """
         id = time.time_ns()
-        self._path = path
-        self._args = args if args else ""
+        self._cmd = cmd
         self._name = name if name else f"KiwiExperiment#{id}"
         self._id = id
-        self._runs = []
+        self._runs: list[dict] = []
+        self._handlers: list[Callable] = []
     
     def run(self):
-        pass
+        """TODO: Warn errors"""
+        run_info = {
+            '_id': time.time_ns(),
+        }
+        start_time = time.time_ns()
+        cproc = subprocess.run(self._cmd, shell=True, capture_output=bool(self._handlers))
+        end_time = time.time_ns()
+        run_info['_runtime'] = end_time - start_time
+        for handler in self._handlers:
+            handler(run_info, cproc.stdout)
+        self._runs.append(run_info)
 
     def get_results(self) -> dict:
         """Returns a dictionary containing the observed results.
@@ -32,25 +44,31 @@ class Experiment:
         EXAMPLE:
         {
             'name': "MyExperiment-001-020"
-            'path': "/home/gpl27/soup/run.sh"
-            'args': "-i inst001.dat"
+            'cmd': "/home/gpl27/soup/run.sh -i inst001.dat"
             '_id':  "1720562683659683387"
             '_runs': [
                 {
                     '_id': "1720566122577771908"
                     '_runtime': "70866072299"
-                    '_logs': ./kiwi/var/r1720566122577771908.log
                     '@cost': 243
                 }
             ]
         }
+        NOTE: Should I return a deep copy of the runs?
         """
-        pass
+        results = {
+            'name': self._name,
+            'cmd': self._cmd,
+            '_id': self._id,
+            '_runs': self._runs
+        }
+        return results
 
-    def attach_output_handler(self, handler: function):
-        """By default will create a log file kiwi/var/r<timestamp>.log
-        with everything that would be printed to STDOUT
+    def attach_output_handler(self, handler: Callable):
+        """By default program output will be ignored.
         You can attach a function that will read the program output
-        and create custom properties in the experiment runs
+        and create custom properties in the experiment runs.
+        Handler function receives self._props and a byte array
+        with everything that would be printed to STDOUT.
         """
-        pass
+        self._handlers.append(handler)

@@ -1,5 +1,7 @@
 from kiwi.experiment import Experiment
 from kiwi.defaults import DEFAULT_SETTINGS
+from kiwi.reporter import BaseReporter
+from multiprocessing import Pool
 
 class Kiwi:
     """Kiwi is configurable program runner.
@@ -16,20 +18,29 @@ class Kiwi:
     """
     def __init__(self, settings: dict =DEFAULT_SETTINGS):
         self._settings = settings
+        self._experiments: list[Experiment] = []
 
     @classmethod
     def load(path: str):
         pass
 
     def run_all(self):
-        pass
+        with Pool(self._settings["threads"]) as pool:
+            for i in range(self._settings["runs"]):
+                for exp in self._experiments:
+                    pool.apply_async(exp.run())
+            pool.close()
+            pool.join()
 
     def run(self, experiment: Experiment):
+        """TODO: Is `experiment` a random experiment, or one of the
+        experiments in `self._experiments`"""
         pass
 
     def add_experiment(self, experiment: Experiment):
-        pass
+        self._experiments.append(experiment)
 
-    def gen_report(self, reporter):
-        pass
+    def gen_report(self, reporter: BaseReporter):
+        results = [exp.get_results() for exp in self._experiments]
+        reporter.generate(results)
 
