@@ -4,9 +4,6 @@ from soupsolver.solution import Solution
 from bitarray import *
 from bitarray.util import *
 
-class SoupSolver:
-    def __init__(self, ):
-        pass
 
 ep01 = Instance("./instances/ep01.dat")
 time_s = time.time_ns()

@@ -1,5 +1,5 @@
 from soupsolver.instance import Instance
-from bitarray import *
+from bitarray import bitarray
 
 class Solution:
     def __init__(self, bits: bitarray, inst: Instance):
