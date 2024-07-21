@@ -26,16 +26,24 @@ class Kiwi:
 
     def run_all(self):
         with Pool(self._settings["threads"]) as pool:
-            for i in range(self._settings["runs"]):
-                for exp in self._experiments:
-                    pool.apply_async(exp.run())
+            results = pool.map(self.run, self._experiments)
+            for exp, r in zip(self._experiments, results):
+                exp._runs += r
             pool.close()
             pool.join()
 
     def run(self, experiment: Experiment):
         """TODO: Is `experiment` a random experiment, or one of the
         experiments in `self._experiments`"""
-        pass
+        seeds = self._settings.get("seeds")
+        runs = []
+        if seeds:
+            for seed in seeds:
+                runs.append(experiment.run(f" --SEED {seed}"))
+        else:
+            for i in range(self._settings["runs"]):
+                runs.append(experiment.run())
+        return runs
 
     def add_experiment(self, experiment: Experiment):
         self._experiments.append(experiment)

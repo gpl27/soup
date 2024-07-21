@@ -8,17 +8,27 @@ import random
 # IDEA: Keep a hashtable of seen solutions
 
 class SoupSolver:
-    def __init__(self, filename: str):
+    def __init__(self,
+                 filename: str,
+                 population_size: int,
+                 recombination_rate: float,
+                 mutation_rate: float,
+                 fitness_selection_rate: float,
+                 max_non_improving_generation: int,
+                 random_seed: int,
+                 max_time: int):
         self.inst = Instance(filename)
-        self.population_size = 100
-        self.recombination_rate = 1.0
-        self.mutation_rate = 1.0
-        self.fitness_selection_rate = 0.5
-        self.max_non_improving_generations = 100
-        self.max_time = 30
-        self.random_seed = 27
+        self.population_size = population_size
+        self.recombination_rate = recombination_rate
+        self.mutation_rate = mutation_rate
+        self.fitness_selection_rate = fitness_selection_rate
+        self.max_non_improving_generations = max_non_improving_generation
+        self.max_time = max_time
+        self.random_seed = random_seed
 
-        random.seed(self.random_seed)
+        if random_seed:
+            random.seed(random_seed)
+
         self.population: list[Solution] = []
         self.best_solution: Solution
         self.non_improving_generations = 0
@@ -29,16 +39,10 @@ class SoupSolver:
         self.generations = 0
         self.total_non_improving_generations = 0
         self.runtime = 0.0
+        self.solved = False
 
         print("SoupSolver v0.0.1")
         print(f"Instance: {filename} - {self.inst}")
-        print(f"Population Size: {self.population_size}")
-        print(f"Recombination Rate: {self.recombination_rate}")
-        print(f"Mutation Rate: {self.mutation_rate}")
-        print(f"Fitness Selection Rate: {self.fitness_selection_rate}")
-        print(f"Max Non-improving Generations: {self.max_non_improving_generations}")
-        print(f"Max Time: {self.max_time}")
-        print(f"Seed: {self.random_seed}")
 
     def validate_solution(self, s: Solution) -> bool:
         cand = count_and(self.inst.map, s.map)
@@ -112,11 +116,11 @@ class SoupSolver:
         self.population = npop
 
     def solve(self):
+        print("Solving...")
         timer = Timer()
         timer.start()
 
         self.init_population()
-
         while (timer.elapsed_time() < self.max_time and 
                self.non_improving_generations < self.max_non_improving_generations):
 
@@ -128,3 +132,26 @@ class SoupSolver:
             self.select_new_population()
 
         self.runtime = timer.stop()
+        self.solved = True
+        print("Done.")
+
+    def print_info(self):
+        if not self.solved:
+            return
+        print("[INFO]")
+        # Parameters
+        print(f"population_size: {self.population_size}")
+        print(f"recombination_rate: {self.recombination_rate}")
+        print(f"mutation_rate: {self.mutation_rate}")
+        print(f"fitness_selection_rate: {self.fitness_selection_rate}")
+        print(f"max_non_improving_generations: {self.max_non_improving_generations}")
+        print(f"max_time: {self.max_time}")
+        if self.random_seed:
+            print(f"seed: {self.random_seed}")
+        # Results
+        print(f"solution_value: {self.best_solution.T}")
+        print(f"solution_cost: {self.best_solution.W}")
+        print(f"runtime: {self.runtime}")
+        print(f"generations: {self.generations}")
+        print(f"non_improving_generations: {self.total_non_improving_generations}")
+        pass
