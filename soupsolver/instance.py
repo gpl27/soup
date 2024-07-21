@@ -46,3 +46,6 @@ class Instance:
     
     def get_neighbors(self, i) -> int:
         return self.map[(i-1)*self.N:i*self.N]
+
+    def __str__(self):
+        return f"N: {self.N} I: {self.I} W: {self.W}"
