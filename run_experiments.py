@@ -38,9 +38,6 @@ for i in range(1, 11):
 # Let Kiwi take care of running them in parallel
 KiwiRunner.run_all()
 
-# Create a custom reporter, or just use one of the defaults
-Reporter = JSONReporter()
-
 # See the generated report in your files
-KiwiRunner.gen_report(Reporter)
+KiwiRunner.gen_report(JSONReporter)
 

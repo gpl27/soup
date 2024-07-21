@@ -11,15 +11,21 @@ DEFAULT_SETTINGS = {
 }
 
 class JSONReporter(BaseReporter):
-    def generate(self, results: list[dict]):
+    @staticmethod
+    def generate(results: list[dict]):
         report_id = time.time_ns()
         with open(f"report-{report_id}.json", "w") as file:
             file.write(json.dumps(results))
+    
+    @staticmethod
+    def load(filename: str) -> list[dict]:
+        with open(filename, "r") as jsonfile:
+            report = json.load(jsonfile)
+        return report
         
 
 class CSVReporter(BaseReporter):
-    def __init__(self):
-        pass
+    @staticmethod
     def generate(self, results: list[dict]):
         report_id = time.time_ns()
         with open(f"report-{report_id}.csv", 'w') as csvfile:
