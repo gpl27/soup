@@ -1,11 +1,12 @@
 from soupsolver.instance import Instance
 from soupsolver.solution import Solution
 from soupsolver.util import Timer
-from bitarray import bitarray
+from bitarray import bitarray, frozenbitarray
 from bitarray.util import count_and, zeros
 import random
 
-# IDEA: Keep a hashtable of seen solutions
+# TODO: Keep a hashtable of current solutions in population
+# Trying to keep all seen solutions will use too much memory
 
 class SoupSolver:
     def __init__(self,
@@ -30,6 +31,7 @@ class SoupSolver:
             random.seed(random_seed)
 
         self.population: list[Solution] = []
+        self.population_map: dict[frozenbitarray] = dict()
         self.best_solution: Solution
         self.non_improving_generations = 0
 
@@ -86,33 +88,40 @@ class SoupSolver:
 
             ns1 = Solution(c1s1.bits | (c1s1.get_valid_ingredients() & c2s2.bits), self.inst)
             ns2 = Solution(c1s2.bits | (c1s2.get_valid_ingredients() & c2s1.bits), self.inst)
-            if self.validate_solution(ns1):
+            if self.validate_solution(ns1) and not self.population_map.get(frozenbitarray(ns1.bits)):
                 self.population.append(ns1)
-            if self.validate_solution(ns2):
+            if self.validate_solution(ns2) and not self.population_map.get(frozenbitarray(ns2.bits)):
                 self.population.append(ns2)
 
     def mutate(self, p: list[Solution]):
         for s in p:
-            i = s.pick_random_valid_ingredient()
-            if i:
-                s.add(i)
-            else:
-                i = s.pick_random_ingredient_from_soup()
-                s.remove(i)
+            for _ in range(5): # Change to k
+                i = s.pick_random_valid_ingredient()
+                if i:
+                    s.add(i)
+                else:
+                    i = s.pick_random_ingredient_from_soup()
+                    s.remove(i)
+                    i = s.pick_random_valid_ingredient()
+                    s.add(i)
 
     def select_new_population(self):
+        self.population_map.clear()
         k = int(self.population_size * self.fitness_selection_rate)
         sortedpop = sorted(self.population, key=lambda s: s.T, reverse=True)
         toppop = sortedpop[:k]
         samplepop = random.sample(sortedpop[k:], self.population_size - k)
         smax = toppop[0]
         npop = toppop + samplepop
-        if smax.T <= self.best_solution.T:
+        if smax.T > self.best_solution.T:
+            self.best_solution = smax.copy()
+            self.non_improving_generations = 0
+            print(f"[INFO] New best solution with value {self.best_solution.T} on generation {self.generations}")
+        else:
             self.non_improving_generations += 1
             self.total_non_improving_generations += 1
-        else:
-            self.best_solution = smax
-            self.non_improving_generations = 0
+        for s in npop:
+            self.population_map[frozenbitarray(s.bits)] = True
         self.population = npop
 
     def solve(self):
@@ -128,8 +137,8 @@ class SoupSolver:
             self.recombination(p)
             p = self.select_for_mutation()
             self.mutate(p)
-            self.generations += 1
             self.select_new_population()
+            self.generations += 1
 
         self.runtime = timer.stop()
         self.solved = True
@@ -138,7 +147,7 @@ class SoupSolver:
     def print_info(self):
         if not self.solved:
             return
-        print("[INFO]")
+        print("[INFO] Results")
         # Parameters
         print(f"population_size: {self.population_size}")
         print(f"recombination_rate: {self.recombination_rate}")
@@ -154,4 +163,3 @@ class SoupSolver:
         print(f"runtime: {self.runtime}")
         print(f"generations: {self.generations}")
         print(f"non_improving_generations: {self.total_non_improving_generations}")
-        pass

@@ -5,8 +5,8 @@ import random
 
 class Solution:
     def __init__(self, bits: bitarray, inst: Instance):
-        self.W = 0
-        self.T = 0
+        self.W: int = 0
+        self.T: int = 0
         self.N = inst.N
         self.inst = inst
         self.bits = bits
@@ -34,6 +34,9 @@ class Solution:
             s.add(i)
             i = s.pick_random_valid_ingredient()
         return s
+
+    def copy(self):
+        return Solution(bitarray(self.bits), self.inst)
     
     def add(self, k):
         k = k - 1
