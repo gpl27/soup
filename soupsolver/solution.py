@@ -4,7 +4,8 @@ from bitarray.util import count_n
 import random
 
 class Solution:
-    def __init__(self, bits: bitarray, inst: Instance):
+    def __init__(self, bits: bitarray, inst: Instance, rng=random.Random()):
+        self.rng = rng
         self.W: int = 0
         self.T: int = 0
         self.N = inst.N
@@ -20,14 +21,14 @@ class Solution:
                 self.T += self.inst.t[i]
 
     @staticmethod
-    def create_empty(inst: Instance):
-        return Solution(bitarray(inst.N), inst)
+    def create_empty(inst: Instance, rng=random.Random()):
+        return Solution(bitarray(inst.N), inst, rng)
 
     @staticmethod
-    def create_random(inst: Instance):
-        s = Solution.create_empty(inst)
+    def create_random(inst: Instance, rng=random.Random()):
+        s = Solution.create_empty(inst, rng)
         # Pick random starting ingredient
-        s.add(random.randint(1, inst.N))
+        s.add(s.rng.randint(1, inst.N))
         # While solution weight < inst.W and there are valid ingredients
         i = s.pick_random_compatible_ingredient()
         while i:
@@ -40,6 +41,8 @@ class Solution:
     
     def add(self, k):
         k = k - 1
+        if self.bits[k] == 1:
+            return
         self.bits[k] = 1
         for i in range(self.N):
             if self.bits[i]:
@@ -51,6 +54,8 @@ class Solution:
 
     def remove(self, k):
         k = k - 1
+        if self.bits[k] == 0:
+            return
         self.bits[k] = 0
         self.map[k*self.N:(k+1)*self.N] = 0
         for i in range(self.N):
@@ -59,12 +64,18 @@ class Solution:
         self.W -= self.inst.w[k]
         self.T -= self.inst.t[k]
 
+    def set(self, i, k):
+        if k == 0:
+            self.remove(i)
+        else:
+            self.add(i)
+
     def pick_random_compatible_ingredient(self) -> int:
         valid_ingredients = self.get_valid_ingredients()
         n = valid_ingredients.count(1)
         if n == 0:
             return 0
-        rn = random.randint(1,n)
+        rn = self.rng.randint(1,n)
         i = count_n(valid_ingredients, rn)
         return i
 
@@ -72,7 +83,7 @@ class Solution:
         valid_ingredients = self.get_valid_ingredients()
         n = valid_ingredients.count(1)
         while n:
-            rn = random.randint(1,n)
+            rn = self.rng.randint(1,n)
             i = count_n(valid_ingredients, rn)
             if self.W + self.inst.w[i-1] <= self.inst.W:
                 return i
@@ -82,7 +93,7 @@ class Solution:
     
     def pick_random_ingredient_from_soup(self) -> int:
         n = self.bits.count(1)
-        rn = random.randint(1, n)
+        rn = self.rng.randint(1, n)
         i = count_n(self.bits, rn)
         return i
 
