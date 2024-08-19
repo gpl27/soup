@@ -50,8 +50,8 @@ while instancia <= 10:
     solverpath_folder = 'C:\\solvers\\glpk-4.65\\w64'
     solverpath_exe='C:\\solvers\\glpk-4.65\\w64\\glpsol'
 
-    sys.path.append(solverpath_folder)
-    solver = SolverFactory(solvername, executable=solverpath_exe)
+    # sys.path.append(solverpath_folder)
+    solver = SolverFactory(solvername)
 
     # RESOLVER MODELO 
     flag = 1
@@ -63,7 +63,7 @@ while instancia <= 10:
 
             # CRIAR DOCUMENTO PARA SOLUÇÃO DA INSTANCIA
             
-            file_name = f"solucao_instancia_{instancia}"
+            file_name = f"s{instancia}.dat"
             resultado_instancia = model.objetivo()
             create_result_file(file_name,ingredientes,model,resultado_instancia)
             flag = 0

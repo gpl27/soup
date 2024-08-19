@@ -40,7 +40,6 @@ def read_dat_file(filename):
 
 def create_result_file(filename, ingredientes,model, resultado):
     with open(filename, 'w') as file:
-        file.write("Solução Ótima:\n")
         for i in ingredientes:
-            file.write(f"Ingrediente {i}: {'Selecionado' if model.x[i]() == 1 else 'Não Selecionado'}\n")
-        file.write(f"Sabor total: {resultado}\n")
+            file.write(f"{int(model.x[i]())}")
+        file.write(f"\n{resultado}")
