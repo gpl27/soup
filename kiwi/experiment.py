@@ -23,18 +23,19 @@ class Experiment:
         self._runs: list[dict] = []
         self._handlers: list[Callable] = []
     
-    def run(self):
+    def run(self, seed: str=None):
         """TODO: Warn errors"""
         run_info = {
             '_id': time.time_ns(),
         }
+        cmd = self._cmd + seed if seed else self._cmd
         start_time = time.time_ns()
-        cproc = subprocess.run(self._cmd, shell=True, capture_output=bool(self._handlers))
+        cproc = subprocess.run(cmd, shell=True, capture_output=bool(self._handlers))
         end_time = time.time_ns()
         run_info['_runtime'] = end_time - start_time
         for handler in self._handlers:
             handler(run_info, cproc.stdout)
-        self._runs.append(run_info)
+        return run_info
 
     def get_results(self) -> dict:
         """Returns a dictionary containing the observed results.
