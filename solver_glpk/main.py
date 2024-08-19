@@ -12,7 +12,7 @@ while instancia <= 10:
     model = ConcreteModel()
 
     # DEFINIÇÃO DOS COEFICIENTES 
-    n, incompatibilities_count, W, t, w, I = read_dat_file(f"./instances/ep{instancia}.dat")
+    n, incompatibilities_count, W, t, w, I = read_dat_file(f"../instances/ep{instancia}.dat")
 
     # VARIÁVEIS DE DECISÃO
 
