@@ -39,9 +39,10 @@ class SoupSolver:
 
         self.rng = random.Random(self.random_seed)
         self.population: list[Solution] = []
-        self.new_population: list[Solution] = []
         self.best_solution: Solution
         self.non_improving_generations = 0
+        self.improved = False
+        self.timer = Timer()
 
         # Stats
         self.avg_population_weight = 0
@@ -60,116 +61,106 @@ class SoupSolver:
         return not bool(cand) and s.W <= self.inst.W
     
     def init_population(self):
+        population_map = dict()
         while len(self.population) < self.population_size:
             s = Solution.create_random(self.inst, self.rng)
-            self.population.append(s)
+            fbits = frozenbitarray(s.bits)
+            if not population_map.get(fbits):
+                self.population.append(s)
+                population_map[fbits] = True
         self.best_solution = max(self.population, key=lambda s: s.T)
         self.initial_solution = self.best_solution.copy()
 
     def select_for_recombination(self) -> list[Solution]:
-        # Rank Selection
-        # https://citeseerx.ist.psu.edu/document?repid=rep1&type=pdf&doi=b61cec42e5aa997a20d563b2886c083b3e0d335c
+        # Rank Selection # https://citeseerx.ist.psu.edu/document?repid=rep1&type=pdf&doi=b61cec42e5aa997a20d563b2886c083b3e0d335c
         n = self.population_size
-        rn = int(n * self.recombination_rate)
         beta_rank = self.beta_rank
         alpha_rank = 2 - beta_rank
         rp: list[Solution] = []
         sorted_pop = sorted(self.population, key=lambda s: s.T)
         i = 0
-        while len(rp) < rn:
+        while len(rp) < 2:
             pRi = (alpha_rank + (i/(n-1))*(beta_rank - alpha_rank))/n
             if self.rng.random() < pRi:
                 rp.append(sorted_pop[i])
             i = (i+1) % n
-        return rp
+        return rp[0], rp[1]
 
-    def select_for_mutation(self) -> list[Solution]:
-        n = int(len(self.new_population) * self.mutation_rate)
-        return self.rng.sample(self.new_population, n)
+    def recombination(self, s1: Solution, s2: Solution) -> Solution:
+        # Uniform Crossover factibilizado
+        ns1 = Solution.create_empty(self.inst, self.rng)
+        ns2 = Solution.create_empty(self.inst, self.rng)
 
-    def recombination(self, p: list[Solution]):
-        # Uniform Crossover
-        for i in range(len(p)):
-            j = i + 1 if i + 1 < len(p) else 0
-            s1 = p[i]
-            s2 = p[j]
-            ns1 = Solution.create_empty(self.inst, self.rng)
-            ns2 = Solution.create_empty(self.inst, self.rng)
+        for ing in range(self.inst.N):
+            ns1_valid = ns1.get_valid_ingredients()
+            ns2_valid = ns2.get_valid_ingredients()
+            if self.rng.random() < 0.5:
+                if s1.bits[ing] and ns1_valid[ing] and ns1.W + self.inst.w[ing] <= self.inst.W:
+                    ns1.add(ing+1)
+                if s2.bits[ing] and ns2_valid[ing] and ns2.W + self.inst.w[ing] <= self.inst.W:
+                    ns2.add(ing+1)
+            else:
+                if s2.bits[ing] and ns1_valid[ing] and ns1.W + self.inst.w[ing] <= self.inst.W:
+                    ns1.add(ing+1)
+                if s1.bits[ing] and ns2_valid[ing] and ns2.W + self.inst.w[ing] <= self.inst.W:
+                    ns2.add(ing+1)
 
-            for ing in range(self.inst.N):
-                ns1_valid = ns1.get_valid_ingredients()
-                ns2_valid = ns2.get_valid_ingredients()
-                if self.rng.random() < 0.5:
-                    if ns1_valid[ing]:
-                        ns1.set(ing+1, s1.bits[ing])
-                    if ns2_valid[ing]:
-                        ns2.set(ing+1, s2.bits[ing])
-                else:
-                    if ns1_valid[ing]:
-                        ns1.set(ing+1, s2.bits[ing])
-                    if ns2_valid[ing]:
-                        ns2.set(ing+1, s1.bits[ing])
+        return max(ns1, ns2, key=lambda s: s.T)
 
-            if self.validate_solution(ns1):
-                self.new_population.append(ns1)
-            if self.validate_solution(ns2):
-                self.new_population.append(ns2)
-
-    def mutate(self, p: list[Solution]):
-        new_best: list[Solution] = []
-        for s in p:
-            for _ in range(self.inst.N // 10): # Make sure we get at least one i == 0
+    def mutate(self, s: Solution):
+        for _ in range(self.inst.N // 10): # Make sure we get at least one i == 0
+            i = s.pick_random_valid_ingredient()
+            if i:
+                s.add(i)
+            else:
+                if s.T > self.best_solution.T:
+                    self.set_new_best(s)
+                i = s.pick_random_ingredient_from_soup()
+                s.remove(i)
                 i = s.pick_random_valid_ingredient()
-                if i:
-                    s.add(i)
-                else:
-                    if s.T > self.best_solution.T:
-                        new_best.append(s.copy())
-                    i = s.pick_random_ingredient_from_soup()
-                    s.remove(i)
-                    i = s.pick_random_valid_ingredient()
-                    s.add(i)
-        p += new_best
+                s.add(i)
 
-    def select_new_population(self):
-        total_pop = self.population + self.new_population
-        smax = max(total_pop, key=lambda s: s.T)
-        if smax.T > self.best_solution.T:
-            self.best_solution = smax.copy()
-            self.non_improving_generations = 0
-            print(f"[INFO] New best solution with value {self.best_solution.T} on generation {self.generations}")
-        else:
-            self.non_improving_generations += 1
-            self.total_non_improving_generations += 1
-        sorted_pop = sorted(total_pop, key=lambda s: s.T, reverse=True)
-        self.population = []
-        population_map = dict()
-        i = 0
-        while len(self.population) < self.population_size:
-            s = sorted_pop[i]
-            fbits = frozenbitarray(s.bits)
-            if not population_map.get(fbits):
-                population_map[fbits] = True
-                self.population.append(s)
-            i = (i + 1) % len(sorted_pop)
+    def set_new_best(self, s: Solution):
+        self.best_solution = s.copy()
+        self.improved = True
+        print(f"[INFO] New best solution with value {self.best_solution.T} on generation {self.generations} t={self.timer.elapsed_time()}")
 
     def solve(self):
         print("[INFO] Solving...")
-        timer = Timer()
-        timer.start()
+        timer = self.timer
+        timer.start() 
 
         self.init_population()
         gen_time = 0
         while (timer.elapsed_time() + gen_time < self.max_time and 
-               self.non_improving_generations < self.max_non_improving_generations):
+               self.total_non_improving_generations < self.max_non_improving_generations):
+            
             gen_time = timer.elapsed_time()
-            self.new_population = []
-            rp = self.select_for_recombination()
-            self.recombination(rp)
-            mp = self.select_for_mutation()
-            self.mutate(mp)
-            self.select_new_population()
+            new_population = []
+            population_map = dict()
+            self.improved = False
+            while len(new_population) < self.population_size:
+                p1, p2 = self.select_for_recombination()
+                if self.rng.random() < self.recombination_rate:
+                    f = self.recombination(p1, p2)
+                else:
+                    f = max(p1, p2, key=lambda s: s.T)
+                if self.rng.random() < self.mutation_rate:
+                    self.mutate(f)
+                if f.T > self.best_solution.T:
+                    self.set_new_best(f)
+                fbits = frozenbitarray(f.bits)
+                if not population_map.get(fbits):
+                    new_population.append(f)
+                    population_map[fbits] = True
+
+            self.population = new_population
             self.generations += 1
+            if not self.improved:
+                self.total_non_improving_generations += 1
+                self.non_improving_generations += 1
+            else:
+                self.non_improving_generations = 0
             gen_time = timer.elapsed_time() - gen_time
 
         self.runtime = timer.stop()
