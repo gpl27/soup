@@ -27,9 +27,16 @@ parser.add_argument("-m", metavar="MUTATION_RATE",
                     default=1.0,
                     type=float)
 parser.add_argument("-g", metavar="GENERATIONS",
-                    help="max number of non improving generations",
+                    help="max number of generations",
                     default=float('inf'),
                     type=int)
+parser.add_argument("-ng", metavar="NON_IMPROVING_GENERATIONS",
+                    help="max number of non improving generations, by default it is the total number of non improving generations",
+                    default=float('inf'),
+                    type=int)
+parser.add_argument("--seq",
+                    help="if max non improving generations should be sequential non improving generations",
+                    action="store_true")
 parser.add_argument("-s", metavar="SEED",
                     help="seed for RNG",
                     type=int)
@@ -48,8 +55,10 @@ solver = SoupSolver(
     args.b,
     args.m,
     args.g,
-    args.s,
-    args.t
+    args.ng,
+    args.seq,
+    args.t,
+    args.s
 )
 solver.solve()
 solver.print_info()

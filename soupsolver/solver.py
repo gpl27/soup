@@ -1,35 +1,39 @@
 from soupsolver.instance import Instance
 from soupsolver.solution import Solution
 from soupsolver.util import Timer
-from bitarray import bitarray, frozenbitarray
-from bitarray.util import count_and, zeros, urandom
+from bitarray import frozenbitarray
+from bitarray.util import count_and
 import random
 import time
 
 VERSION = {
-    "MAJOR": 0,
+    "MAJOR": 1,
     "MINOR": 0,
-    "PATCH": 1
+    "PATCH": 0
 }
 
 class SoupSolver:
     def __init__(self,
-                 filename: str,
+                 in_filename: str,
                  out_filename: str,
                  population_size: int,
                  recombination_rate: float,
                  beta_rank: float,
                  mutation_rate: float,
+                 max_generations: int|float,
                  max_non_improving_generations: int|float,
-                 random_seed: int,
-                 max_time: int):
-        self.inst = Instance(filename)
+                 seq_non_improving_generations: bool,
+                 max_time: int,
+                 random_seed: int):
+        self.inst = Instance(in_filename)
         self.out_filename = out_filename
         self.population_size = population_size
         self.recombination_rate = recombination_rate
         self.beta_rank = beta_rank
         self.mutation_rate = mutation_rate
+        self.max_generations = max_generations
         self.max_non_improving_generations = max_non_improving_generations
+        self.seq_non_improving_generations = seq_non_improving_generations
         self.max_time = max_time
         
         if random_seed:
@@ -53,7 +57,7 @@ class SoupSolver:
         self.solved = False
 
         print(f"SoupSolver v{VERSION['MAJOR']}.{VERSION['MINOR']}.{VERSION['PATCH']}")
-        print(f"Instance: {filename} - {self.inst}")
+        print(f"Instance: {in_filename} - {self.inst}")
         print(f"Output: {self.out_filename}")
 
     def validate_solution(self, s: Solution) -> bool:
@@ -108,7 +112,7 @@ class SoupSolver:
         return max(ns1, ns2, key=lambda s: s.T)
 
     def mutate(self, s: Solution):
-        for _ in range(self.inst.N // 10): # Make sure we get at least one i == 0
+        for _ in range(self.inst.N // 10): # TODO: Make sure we get at least one i == 0
             i = s.pick_random_valid_ingredient()
             if i:
                 s.add(i)
@@ -132,8 +136,10 @@ class SoupSolver:
 
         self.init_population()
         gen_time = 0
+        non_improving_gens = 0
         while (timer.elapsed_time() + gen_time < self.max_time and 
-               self.total_non_improving_generations < self.max_non_improving_generations):
+               non_improving_gens < self.max_non_improving_generations and
+               self.generations < self.max_generations):
             
             gen_time = timer.elapsed_time()
             new_population = []
@@ -161,6 +167,8 @@ class SoupSolver:
                 self.non_improving_generations += 1
             else:
                 self.non_improving_generations = 0
+            
+            non_improving_gens = self.non_improving_generations if self.seq_non_improving_generations else self.total_non_improving_generations
             gen_time = timer.elapsed_time() - gen_time
 
         self.runtime = timer.stop()
@@ -178,7 +186,9 @@ class SoupSolver:
         print(f"recombination_rate: {self.recombination_rate}")
         print(f"beta_rank: {self.beta_rank}")
         print(f"mutation_rate: {self.mutation_rate}")
+        print(f"max_generations: {self.max_generations}")
         print(f"max_non_improving_generations: {self.max_non_improving_generations}")
+        print(f"seq_non_improving_generations: {self.seq_non_improving_generations}")
         print(f"max_time: {self.max_time}")
         print(f"seed: {self.random_seed}")
         # Results
@@ -188,6 +198,6 @@ class SoupSolver:
         print(f"solution_cost: {self.best_solution.W}")
         print(f"runtime: {self.runtime}")
         print(f"generations: {self.generations}")
-        print(f"non_improving_generations: {self.total_non_improving_generations}")
+        print(f"total_non_improving_generations: {self.total_non_improving_generations}")
         print("solution_bits:")
         print(self.best_solution.bits.to01())
