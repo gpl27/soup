@@ -1,14 +1,17 @@
-from bitarray.util import *
-from bitarray import *
-# TODO: Where should this go?? Need to fix circular import
-# from soupsolver.solution import Solution 
+from bitarray import bitarray
 
 class Instance:
+    """
+        self.t
+        self.w
+        self.i
+        self.map
+        self.cmap
+    """
     def __init__(self, filename: str):
         self.t: list[int] = []
         self.w: list[int] = []
         self.i: list[tuple[int, int]] = []
-        self.ibits: list[bitarray] = []
         with open(filename) as f:
             [N, I, W] = f.readline().strip().split(' ')
             self.N = int(N)
@@ -34,22 +37,15 @@ class Instance:
         for i in self.i:
             j = i[0]-1
             k = i[1] - 1
-            tmp = bitarray(self.N)
-            tmp[j] = 1
-            tmp[k] = 1
             self.map[j*self.N + k] = 1
             self.map[k*self.N + j] = 1
-            self.ibits.append(tmp)
         self.cmap = ~self.map
-
-    def validate_solution(self, s) -> bool:
-        return not bool(count_and(self.map, s.map)) and s.W <= self.W
-
-    def is_incompatible_solution(self, s) -> bool:
-        return not bool(count_and(self.map, s.map))
 
     def check(self, i, j) -> bool:
         return bool(self.map[(i-1)*self.N + (j-1)])
     
     def get_neighbors(self, i) -> int:
         return self.map[(i-1)*self.N:i*self.N]
+
+    def __str__(self):
+        return f"N: {self.N} I: {self.I} W: {self.W}"
