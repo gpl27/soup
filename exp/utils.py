@@ -25,7 +25,7 @@ def parse_cmd(cmd: str) -> dict:
     pcmd["@recombination_rate"] = acmd[acmd.index("-r") + 1]
     pcmd["@mutation_rate"] = acmd[acmd.index("-m") + 1]
     pcmd["@beta_rank"] = acmd[acmd.index("-b") + 1]
-    pcmd["@generations"] = acmd[acmd.index("-g") + 1]
+    # pcmd["@generations"] = acmd[acmd.index("-g") + 1]
     # pcmd["@max_non_improving_generations"] = acmd[acmd.index("-ng") + 1]
     return pcmd
 
@@ -45,6 +45,8 @@ class SoupReporter(BaseReporter):
             result["@best_run_solution_time"] = best_run["@runtime"]
             result["@best_run_solution_optimality"] = best_run["@solution_value"]/BKVs[result["@instance"]]
             result["@best_run_solution_seed"] = best_run["@seed"]
+            result["@initial_solution_deviation"] = (best_run["@solution_value"] - best_run["@initial_solution_value"])/best_run["@initial_solution_value"]
+            result["@solution_optimality_deviation"] = 1 - result["@best_run_solution_optimality"]
             result["@avg_solution_value"] = sum(map(lambda r: r["@solution_value"], exp_result["_runs"]))/len(exp_result["_runs"])
             result["@avg_solution_optimality"] = sum(map(lambda r: r["@solution_value"]/BKVs[result["@instance"]], exp_result["_runs"]))/len(exp_result["_runs"])
             result["@avg_solution_time"] = sum(map(lambda r: r["@runtime"], exp_result["_runs"]))/len(exp_result["_runs"])
