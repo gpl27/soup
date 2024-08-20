@@ -9,7 +9,7 @@ import time
 VERSION = {
     "MAJOR": 1,
     "MINOR": 0,
-    "PATCH": 0
+    "PATCH": 1
 }
 
 class SoupSolver:
@@ -80,15 +80,10 @@ class SoupSolver:
         n = self.population_size
         beta_rank = self.beta_rank
         alpha_rank = 2 - beta_rank
-        rp: list[Solution] = []
         sorted_pop = sorted(self.population, key=lambda s: s.T)
-        i = 0
-        while len(rp) < 2:
-            pRi = (alpha_rank + (i/(n-1))*(beta_rank - alpha_rank))/n
-            if self.rng.random() < pRi:
-                rp.append(sorted_pop[i])
-            i = (i+1) % n
-        return rp[0], rp[1]
+        p = [(alpha_rank + (i/(n-1))*(beta_rank - alpha_rank))/n for i in range(n)]
+        r = self.rng.choices(population=sorted_pop, weights=p, k=2)
+        return r[0], r[1]
 
     def recombination(self, s1: Solution, s2: Solution) -> Solution:
         # Uniform Crossover factibilizado
@@ -112,6 +107,30 @@ class SoupSolver:
         return max(ns1, ns2, key=lambda s: s.T)
 
     def mutate(self, s: Solution):
+        bs = self.best_solution
+        counter = 0
+        i = s.pick_random_valid_ingredient()
+        while i > 0:
+            s.add(i)
+            i = s.pick_random_valid_ingredient()
+            counter += 0
+        if s.T > bs.T:
+            bs = s.copy()
+        if counter < self.inst.N // 10:
+            for _ in range(self.inst.N//10 - counter):
+                i = s.pick_random_valid_ingredient()
+                if i:
+                    s.add(i)
+                else:
+                    i = s.pick_random_ingredient_from_soup()
+                    s.remove(i)
+                    i = s.pick_random_valid_ingredient()
+                    s.add(i)
+                if s.T > bs.T:
+                    bs = s.copy()
+        if bs.T > self.best_solution.T:
+            self.set_new_best(bs)
+
         for _ in range(self.inst.N // 10): # TODO: Make sure we get at least one i == 0
             i = s.pick_random_valid_ingredient()
             if i:
@@ -143,7 +162,6 @@ class SoupSolver:
             
             gen_time = timer.elapsed_time()
             new_population = []
-            population_map = dict()
             self.improved = False
             while len(new_population) < self.population_size:
                 p1, p2 = self.select_for_recombination()
@@ -155,10 +173,8 @@ class SoupSolver:
                     self.mutate(f)
                 if f.T > self.best_solution.T:
                     self.set_new_best(f)
-                fbits = frozenbitarray(f.bits)
-                if not population_map.get(fbits):
-                    new_population.append(f)
-                    population_map[fbits] = True
+
+                new_population.append(f)
 
             self.population = new_population
             self.generations += 1

@@ -39,7 +39,7 @@ class Kiwi:
         runs = []
         if seeds:
             for seed in seeds:
-                runs.append(experiment.run(f" --SEED {seed}"))
+                runs.append(experiment.run(f" {self._settings['seed_flag']} {seed}"))
         else:
             for i in range(self._settings["runs"]):
                 runs.append(experiment.run())
