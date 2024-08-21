@@ -11,8 +11,6 @@ from utils import extract_results, SoupReporter
 def main():
     SETTINGS = DEFAULT_SETTINGS.copy()
     SETTINGS['threads'] = 8
-    # SETTINGS['seed_flag'] = "-s"
-    # SETTINGS['seeds'] = [i+1 for i in range(5)]
 
     KiwiRunner = Kiwi(SETTINGS)
 
@@ -24,7 +22,7 @@ def main():
 
     for i in range(1, 11):
         exp_name = f"ep{i:02d}-p{p}-r{r}-b{b}-m{m}"
-        exp = Experiment(f"python ../soup_runner.py random_seed/s{exp_name}.dat ../instances/ep{i:02d}.dat -p {p} -b {b} -r {r} -m {m} -t {t}", exp_name)
+        exp = Experiment(f"python ../soup_runner.py results/s{exp_name}.dat ../instances/ep{i:02d}.dat -p {p} -b {b} -r {r} -m {m} -t {t}", exp_name)
         exp.attach_output_handler(extract_results)
         KiwiRunner.add_experiment(exp)
 
@@ -35,7 +33,4 @@ def main():
     KiwiRunner.gen_report(SoupReporter) # Save formatted report
 
 if __name__ == '__main__':
-    import json
-    with open("report-results_noseed.json") as f:
-        SoupReporter.generate(json.load(f))
-    # main()
+    main()

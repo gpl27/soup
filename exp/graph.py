@@ -1,3 +1,5 @@
+# NOTE: GPT-4o mini generated
+
 import json
 import matplotlib.pyplot as plt
 from collections import defaultdict

@@ -12,7 +12,7 @@ def main():
     SETTINGS = DEFAULT_SETTINGS.copy()
     SETTINGS['threads'] = 8
     SETTINGS['seed_flag'] = "-s"
-    SETTINGS['seeds'] = [i+1 for i in range(5)] # Run each experiment 5 times with diff seeds
+    SETTINGS['seeds'] = [i+1 for i in range(5)]
 
     KiwiRunner = Kiwi(SETTINGS)
 
@@ -23,7 +23,6 @@ def main():
 
     for i in range(1, 3):
         for p in range(10,410,10):
-            # TODO in Kiwi: output file is being overwritten
             exp_name = f"ep{i:02d}-p{p}-r{r}-b{b}-m{m}-g{g}"
             exp = Experiment(f"python ../soup_runner.py population_size/s{exp_name}.dat ../instances/ep{i:02d}.dat -p {p} -b {b} -r {r} -m {m} -g {g}", exp_name)
             exp.attach_output_handler(extract_results)

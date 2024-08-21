@@ -12,7 +12,7 @@ def main():
     SETTINGS = DEFAULT_SETTINGS.copy()
     SETTINGS['threads'] = 8
     SETTINGS['seed_flag'] = "-s"
-    SETTINGS['seeds'] = [i+1 for i in range(5)] # Run each experiment 5 times with diff seeds
+    SETTINGS['seeds'] = [i+1 for i in range(5)]
 
     KiwiRunner = Kiwi(SETTINGS)
 
